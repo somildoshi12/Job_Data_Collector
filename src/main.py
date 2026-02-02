@@ -29,6 +29,27 @@ def main():
             url = company.get('career_url')
             cid = company.get('id')
             
+            # --- AUTO DISCOVERY LOGIC ---
+            if url == "AUTO_DISCOVER" or not url:
+                print(f"🕵️‍♂️ finding career page for: {name}...")
+                try:
+                    from googlesearch import search
+                    # Search for "Company Name careers"
+                    query = f"{name} careers jobs"
+                    results = list(search(query, num_results=1))
+                    if results:
+                        url = results[0]
+                        print(f"✅ Found URL: {url}")
+                        # Update DB so we don't search again
+                        db.supabase.table("companies").update({"career_url": url}).eq("id", cid).execute()
+                    else:
+                        print(f"❌ Could not find URL for {name}")
+                        continue
+                except Exception as e:
+                    print(f"Error searching for URL: {e}")
+                    continue
+            # ---------------------------
+            
             # Select Collector
             collector = None
             if 'greenhouse' in url:

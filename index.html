@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job CRM</title>
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase (CDN) -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-blur: 20px;
+            --accent: #8b5cf6;
+        }
+
+        body {
+            background: #0f172a;
+            color: #e2e8f0;
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .nav-active {
+            background: rgba(139, 92, 246, 0.2);
+            border-bottom: 2px solid var(--accent);
+            color: white;
+        }
+
+        /* Ambient Background */
+        .ambient-light {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            z-index: -1;
+            opacity: 0.4;
+        }
+    </style>
+</head>
+
+<body class="relative">
+
+    <!-- Ambient Backgrounds -->
+    <div class="ambient-light bg-purple-600 w-96 h-96 top-0 left-0"></div>
+    <div class="ambient-light bg-blue-600 w-96 h-96 bottom-0 right-0"></div>
+
+    <!-- NAVBAR -->
+    <nav class="fixed top-0 w-full z-50 glass border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="bg-gradient-to-tr from-purple-500 to-blue-500 p-2 rounded-lg">
+                        <i data-lucide="briefcase" class="text-white w-5 h-5"></i>
+                    </div>
+                    <span class="font-bold text-xl tracking-tight text-white">Job CRM</span>
+                </div>
+                <div class="flex space-x-4">
+                    <button onclick="switchTab('new')" id="tab-new"
+                        class="nav-active px-3 py-2 rounded-md text-sm font-medium transition-colors hover:text-white">New
+                        Jobs</button>
+                    <button onclick="switchTab('applied')" id="tab-applied"
+                        class="px-3 py-2 rounded-md text-sm font-medium transition-colors hover:text-white text-gray-400">Applied</button>
+                    <button onclick="switchTab('companies')" id="tab-companies"
+                        class="px-3 py-2 rounded-md text-sm font-medium transition-colors hover:text-white text-gray-400">Target
+                        Companies</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- CONTENT CONTAINER -->
+    <main class="max-w-7xl mx-auto px-4 pt-24 pb-12">
+
+        <!-- SEARCH & FILTER ROW -->
+        <div id="filter-bar"
+            class="mb-8 flex flex-col md:flex-row gap-4 justify-between items-center glass p-4 rounded-xl">
+            <div class="relative w-full md:w-96">
+                <i data-lucide="search" class="absolute left-3 top-3 text-gray-400 w-5 h-5"></i>
+                <input type="text" id="searchInput" placeholder="Search roles or companies..."
+                    class="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:border-purple-500 transition-colors">
+            </div>
+            <div class="text-sm text-gray-400" id="status-text">
+                Showing all new jobs
+            </div>
+        </div>
+
+        <!-- JOBS GRID -->
+        <div id="job-view" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Jobs injected here -->
+        </div>
+
+        <!-- COMPANIES VIEW (Hidden by default) -->
+        <div id="company-view" class="hidden">
+            <div class="glass p-8 rounded-2xl max-w-2xl mx-auto mb-8">
+                <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+                    <i data-lucide="building-2" class="text-blue-400"></i> Add New Company
+                </h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1">Company Name</label>
+                        <input type="text" id="new-company-name" placeholder="e.g. OpenAI"
+                            class="w-full bg-white/5 border border-white/10 rounded-lg p-3 focus:border-purple-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1">Career Page URL</label>
+                        <input type="text" id="new-company-url" placeholder="e.g. https://openai.com/careers"
+                            class="w-full bg-white/5 border border-white/10 rounded-lg p-3 focus:border-purple-500 outline-none">
+                    </div>
+                    <button onclick="addCompany()"
+                        class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i> Add to Tracker
+                    </button>
+                    <p id="company-msg" class="text-center text-sm mt-2 hidden"></p>
+                </div>
+            </div>
+
+            <!-- TRIGGER ACTIONS -->
+            <div class="glass p-6 rounded-2xl max-w-2xl mx-auto mb-8 flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-white">Daily Schedule Active</h3>
+                    <p class="text-sm text-gray-400">Scraper runs automatically every day at 8:00 AM.</p>
+                </div>
+                <!-- ONE CLICK TRIGGER -->
+                <button onclick="triggerScrape()"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
+                    <i data-lucide="play-circle" class="w-5 h-5"></i> Trigger Manual Fetch
+                </button>
+            </div>
+
+            <div class="glass rounded-xl overflow-hidden">
+                <table class="w-full text-left">
+                    <thead class="bg-white/5 text-gray-400 text-sm uppercase">
+                        <tr>
+                            <th class="p-4">Company (Click to Edit)</th>
+                            <th class="p-4">URL (Click to Edit)</th>
+                            <th class="p-4"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="company-list" class="divide-y divide-white/10">
+                        <!-- Company rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- JS LOGIC -->
+    <script>
+        // CONFIG - Replace with your keys
+        const SUPABASE_URL = "https://vtlvoxisnkhvbfvdndrh.supabase.co";
+        // NOTE: Use the Top 'Publishable' key here
+        const SUPABASE_KEY = "sb_publishable_kCL__BHkx2IroFjC0TdIsA_N53bhIZB";
+
+        const { createClient } = supabase;
+        const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // STATE
+        let allJobs = [];
+        let curTab = 'new'; // 'new' | 'applied' | 'companies'
+
+        // INIT
+        async function init() {
+            await fetchJobs();
+            lucide.createIcons();
+        }
+
+        async function fetchJobs() {
+            try {
+                const { data, error } = await _supabase
+                    .from('jobs')
+                    .select('*, companies(name)')
+                    .order('posted_date', { ascending: false });
+
+                if (error) throw error;
+                allJobs = data;
+                renderJobs();
+            } catch (err) {
+                console.error(err);
+                alert("Error loading data. Check console.");
+            }
+        }
+
+        // RENDER
+        function renderJobs() {
+            const grid = document.getElementById('job-view');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+
+            // Filter by Tab & Search
+            const filtered = allJobs.filter(job => {
+                const status = job.status || 'new'; // default to new if null
+                const matchesTab = (curTab === 'applied') ? status === 'applied' : status === 'new';
+                const matchesSearch = job.title.toLowerCase().includes(search) ||
+                    (job.companies?.name || '').toLowerCase().includes(search);
+                return matchesTab && matchesSearch;
+            });
+
+            document.getElementById('status-text').innerText = `Showing ${filtered.length} ${curTab} jobs`;
+            grid.innerHTML = '';
+
+            filtered.forEach(job => {
+                const card = document.createElement('div');
+                card.className = 'glass rounded-xl p-5 hover:border-purple-500/50 transition-all group relative';
+
+                // Card Content
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex flex-col">
+                            <span class="text-xs font-bold text-purple-400 uppercase tracking-widest mb-1">
+                                ${job.companies?.name || 'Unknown'}
+                            </span>
+                            <h3 class="text-lg font-semibold text-white leading-tight pr-8" contenteditable="true" onblur="updateTitle(${job.id}, this)">
+                                ${job.title}
+                            </h3>
+                        </div>
+                        <span class="text-xs text-gray-500 bg-white/5 px-2 py-1 rounded">
+                            ${job.posted_date || 'Recent'}
+                        </span>
+                    </div>
+
+                    <div class="flex items-center gap-2 text-sm text-gray-400 mb-6">
+                        <i data-lucide="map-pin" class="w-3 h-3"></i> ${job.location}
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mt-auto">
+                        <a href="${job.url}" target="_blank" onclick="markApplied(${job.id})"
+                           class="col-span-2 bg-white/10 hover:bg-white/20 text-white py-2 rounded-lg text-sm font-medium text-center transition-colors flex items-center justify-center gap-2">
+                           Apply Now <i data-lucide="external-link" class="w-3 h-3"></i>
+                        </a>
+                        
+                        ${curTab === 'new' ? `
+                            <button onclick="markApplied(${job.id})" class="text-blue-400 hover:text-blue-300 text-xs py-2">
+                                <i data-lucide="check-circle-2" class="w-3 h-3 inline mr-1"></i> Mark Applied
+                            </button>
+                            <button onclick="deleteJob(${job.id})" class="text-red-400 hover:text-red-300 text-xs py-2">
+                                <i data-lucide="trash-2" class="w-3 h-3 inline mr-1"></i> Remove
+                            </button>
+                        ` : `
+                            <button onclick="deleteJob(${job.id})" class="col-span-2 text-red-400 hover:text-red-300 text-xs py-2">
+                                Delete from History
+                            </button>
+                        `}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        // ACTIONS
+        async function markApplied(id) {
+            // Update UI optimistically
+            const job = allJobs.find(j => j.id === id);
+            if (job) job.status = 'applied';
+            renderJobs();
+
+            // Update DB
+            await _supabase.from('jobs').update({ status: 'applied' }).eq('id', id);
+        }
+
+        async function deleteJob(id) {
+            if (!confirm("Permanently delete this job?")) return;
+
+            // Update UI
+            allJobs = allJobs.filter(j => j.id !== id);
+            renderJobs();
+
+            // Update DB
+            await _supabase.from('jobs').delete().eq('id', id);
+        }
+
+        async function updateTitle(id, el) {
+            const newTitle = el.innerText.trim();
+            await _supabase.from('jobs').update({ title: newTitle }).eq('id', id);
+        }
+
+        async function addCompany() {
+            const name = document.getElementById('new-company-name').value;
+            const url = document.getElementById('new-company-url').value;
+            const msg = document.getElementById('company-msg');
+
+            if (!name || !url) return;
+
+            msg.innerText = "Adding...";
+            msg.className = "text-center text-sm mt-2 text-blue-400 block";
+
+            const { error } = await _supabase.from('companies').insert({ name, career_url: url });
+
+            if (error) {
+                msg.innerText = "Error: " + error.message;
+                msg.className = "text-center text-sm mt-2 text-red-400 block";
+            } else {
+                msg.innerText = "Company Added! It will be scraped tomorrow.";
+                msg.className = "text-center text-sm mt-2 text-green-400 block";
+                document.getElementById('new-company-name').value = "";
+                document.getElementById('new-company-url').value = "";
+                loadCompanies(); // Refresh list
+            }
+        }
+
+        async function loadCompanies() {
+            const { data } = await _supabase.from('companies').select('*').order('created_at', { ascending: false });
+            const list = document.getElementById('company-list');
+            list.innerHTML = '';
+            data.forEach(c => {
+                const row = document.createElement('tr');
+                row.className = "hover:bg-white/5";
+                row.innerHTML = `
+                    <td class="p-4 font-medium text-white">${c.name}</td>
+                    <td class="p-4 text-gray-400 text-sm truncate max-w-xs">${c.career_url}</td>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        // NAVIGATION
+        function switchTab(tab) {
+            curTab = tab;
+
+            // Update Buttons
+            ['new', 'applied', 'companies'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (t === tab) {
+                    btn.classList.add('nav-active', 'text-white');
+                    btn.classList.remove('text-gray-400');
+                } else {
+                    btn.classList.remove('nav-active', 'text-white');
+                    btn.classList.add('text-gray-400');
+                }
+            });
+
+            // Show/Hide Views
+            if (tab === 'companies') {
+                document.getElementById('job-view').classList.add('hidden');
+                document.getElementById('filter-bar').classList.add('hidden');
+                document.getElementById('company-view').classList.remove('hidden');
+                loadCompanies();
+            } else {
+                document.getElementById('job-view').classList.remove('hidden');
+                document.getElementById('filter-bar').classList.remove('hidden');
+                document.getElementById('company-view').classList.add('hidden');
+                renderJobs();
+            }
+        }
+
+        // GITHUB ACTIONS TRIGGER
+        async function triggerScrape() {
+            const REPO_OWNER = "somildoshi12";
+            const REPO_NAME = "Job_Data_Collector";
+            const WORKFLOW_FILE = "scrape.yml";
+
+            // 1. Get Token (Stored locally so it's not hardcoded/exposed)
+            let token = localStorage.getItem("GH_PAT");
+            if (!token) {
+                token = prompt("Please enter a GitHub Personal Access Token (PAT) with 'workflow' permissions to enable this feature:");
+                if (token) localStorage.setItem("GH_PAT", token);
+                else return;
+            }
+
+            const btn = document.querySelector('button[onclick="triggerScrape()"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="loader" class="w-5 h-5 animate-spin"></i> Starting...`;
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/${WORKFLOW_FILE}/dispatches`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ ref: 'master' }) // or 'main' depending on your branch
+                });
+
+                if (response.ok) {
+                    alert("✅ Scraper Started!\nIt will run in the cloud. Refresh this page in ~1-2 minutes to see new jobs.");
+                } else {
+                    const err = await response.json();
+                    if (response.status === 401) {
+                        localStorage.removeItem("GH_PAT"); // Clear bad token
+                        alert("Error: Invalid Token. Please try again.");
+                    } else {
+                        alert(`Error triggering workflow: ${err.message || response.statusText}`);
+                    }
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Network Error: Could not connect to GitHub.");
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                lucide.createIcons();
+            }
+        }
+
+        document.getElementById('searchInput').addEventListener('input', renderJobs);
+
+        init();
+    </script>
+</body>
+
+</html>

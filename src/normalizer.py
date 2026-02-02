@@ -2,7 +2,7 @@ from typing import List, Dict
 import re
 from datetime import datetime
 
-from .config import TARGET_ROLES, TARGET_COUNTRIES, EXCLUDED_LOCATIONS
+from .config import TARGET_ROLES, TARGET_COUNTRIES, EXCLUDED_LOCATIONS, EXCLUDED_ROLES
 
 class JobNormalizer:
     def normalize(self, job_raw: Dict) -> Dict:
@@ -25,11 +25,21 @@ class JobNormalizer:
         title = job['title'].lower()
         location = job['location'].lower()
 
-        # 1. Check Role Match
-        if not any(role in title for role in TARGET_ROLES):
+        # 1. Negative Role Filter (Drop these first)
+        if any(excluded in title for excluded in EXCLUDED_ROLES):
             return False
+
+        # 2. Positive Role Filter
+        # We check if (e.g. "data engineer") is in the title string
+        if not any(role in title for role in TARGET_ROLES):
+            # Fallback: Check if "data" AND ("engineer" or "analyst" or "scientist") are present
+            # This handles "Engineer - Data" or "Analyst (Data)"
+            if "data" in title and any(x in title for x in ["engineer", "analyst", "scientist"]):
+                pass # Good
+            else:
+                return False
             
-        # 2. Check Excluded Locations (Strict Drop)
+        # 3. Check Excluded Locations (Strict Drop)
         if any(excluded in location for excluded in EXCLUDED_LOCATIONS):
             return False
 

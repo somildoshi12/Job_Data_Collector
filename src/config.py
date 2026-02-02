@@ -1,10 +1,21 @@
 # Filter Configuration
 
-# Only keep jobs if title contains at least one of these (case-insensitive)
+# Positive Constraints: Title must contain at least one of these
 TARGET_ROLES = [
-    "data", "analyst", "engineer", "scientist", 
-    "machine learning", "ai", "business intelligence", "etl",
-    "python", "sql"
+    "data engineer", "data analyst", "data scientist",
+    "analytics engineer", "bi analyst", "business intelligence",
+    "machine learning", " ml ", "ai engineer", "decision scientist",
+    "product analyst", "marketing analyst", "research scientist",
+    "etl", "nlp", "computer vision"
+]
+
+# Negative Constraints: Title must NOT contain any of these
+EXCLUDED_ROLES = [
+    "security", "cyber", "hardware", "facility", "facilities",
+    "legal", "counsel", "sales", "account executive", "hr",
+    "recruiter", "talent", "office", "compliance", "intern", # Unless you want interns
+    "manager", "directory", "vp", "head of", "principal", # Seniority filtering (optional)
+    "mechanical", "electrical", "civil", "network", "system admin", "support"
 ]
 
 # Only keep jobs if location matches one of these (case-insensitive)

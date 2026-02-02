@@ -44,10 +44,14 @@ def main():
                         db.supabase.table("companies").update({"career_url": url}).eq("id", cid).execute()
                     else:
                         print(f"❌ Could not find URL for {name}")
-                        continue
+                        continue # Skip scraping
                 except Exception as e:
                     print(f"Error searching for URL: {e}")
-                    continue
+                    continue # Skip scraping
+            
+            if url == "AUTO_DISCOVER" or not url:
+                print(f"⚠️ Skipping {name} (No URL)")
+                continue
             # ---------------------------
             
             # Select Collector

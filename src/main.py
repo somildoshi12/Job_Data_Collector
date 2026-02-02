@@ -43,9 +43,12 @@ def main():
             # Normalize and Prepare
             clean_jobs = []
             for job in raw_jobs:
-                clean_job = normalizer.normalize(job)
-                clean_job['company_id'] = cid # Link foreign key
-                clean_jobs.append(clean_job)
+                normalized_job = normalizer.normalize(job)
+                
+                # Apply Filters
+                if normalizer.validate(normalized_job):
+                    normalized_job['company_id'] = cid # Link foreign key
+                    clean_jobs.append(normalized_job)
                 
             # Save
             if clean_jobs:

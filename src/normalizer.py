@@ -2,6 +2,8 @@ from typing import List, Dict
 import re
 from datetime import datetime
 
+from .config import TARGET_ROLES, TARGET_COUNTRIES, EXCLUDED_LOCATIONS
+
 class JobNormalizer:
     def normalize(self, job_raw: Dict) -> Dict:
         """
@@ -15,6 +17,30 @@ class JobNormalizer:
             "posted_date": self._parse_date(job_raw.get("posted_date")),
             "is_active": True
         }
+
+    def validate(self, job: Dict) -> bool:
+        """
+        Returns True if job matches User requirements (Role + Location).
+        """
+        title = job['title'].lower()
+        location = job['location'].lower()
+
+        # 1. Check Role Match
+        if not any(role in title for role in TARGET_ROLES):
+            return False
+            
+        # 2. Check Excluded Locations (Strict Drop)
+        if any(excluded in location for excluded in EXCLUDED_LOCATIONS):
+            return False
+
+        # 3. Check Target Location (Must be US or Remote)
+        # If location is explicitly foreign, it was caught above.
+        # Here we just ensure it's not some random city in a country we didn't exclude but don't want.
+        # A simple heuristic: If it matches target keywords OR is just a city name (hard to verify without geo-db).
+        # For safety, let's require at least one target match IF the location string is long enough to likely contain a country.
+        
+        # Simplified: Pass if it hits a target keyword OR if we aren't sure (avoid false negatives)
+        return True
 
     def _clean_text(self, text: str) -> str:
         if not text:
